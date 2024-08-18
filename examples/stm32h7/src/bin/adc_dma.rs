@@ -50,6 +50,8 @@ async fn main(_spawner: Spawner) {
     info!("Hello World!");
 
     let mut adc = Adc::new(p.ADC3);
+    let max = embassy_stm32::adc::resolution_to_max_count(embassy_stm32::adc::Resolution::BITS12V);
+    info!("resolution 12vbits max = {}", max);
 
     let mut dma = p.DMA1_CH1;
     let mut vrefint_channel = adc.enable_vrefint().degrade_adc();

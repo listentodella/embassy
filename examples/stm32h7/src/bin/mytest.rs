@@ -3,9 +3,10 @@
 
 use core::fmt::Write;
 use defmt::*;
-use embassy_executor::{Executor, Spawner};
+use embassy_executor::Spawner;
 use embassy_stm32::gpio::{AnyPin, Level, Output, Pin, Speed};
-use embassy_stm32::usart::{Config, RxPin, TxPin, Uart};
+use embassy_stm32::mode::Async;
+use embassy_stm32::usart::{Config, Uart};
 use embassy_stm32::{bind_interrupts, peripherals, usart};
 use embassy_time::{Duration, Timer};
 //use static_cell::StaticCell;
@@ -28,7 +29,7 @@ async fn blinky(pin: AnyPin) {
 }
 
 #[embassy_executor::task]
-async fn usart_task() {
+async fn usart_task1() {
     let config = Config::default();
     let usart = unsafe { peripherals::USART1::steal() };
     let mut usart = unsafe {
@@ -46,7 +47,7 @@ async fn usart_task() {
 
     for n in 0.. {
         let mut s: String<128> = String::new();
-        core::write!(&mut s, "Hello DMA World {}!\r\n", n).unwrap();
+        core::write!(&mut s, "Hello USART Task1: {}!\r\n", n).unwrap();
 
         usart.write(s.as_bytes()).await.ok();
         Timer::after(Duration::from_millis(1000)).await;
@@ -66,13 +67,14 @@ async fn usart_task2(
 
     for n in 0.. {
         let mut s: String<128> = String::new();
-        core::write!(&mut s, "Hello USART World {}!\r\n", n).unwrap();
+        core::write!(&mut s, "Hello USART Task2: {}!\r\n", n).unwrap();
 
         usart.write(s.as_bytes()).await.ok();
         Timer::after(Duration::from_millis(1000)).await;
     }
 }
 
+// it's hard to pass the compiler...
 // #[embassy_executor::task]
 // async fn usart_task3(
 //     uart: peripherals::USART1,
@@ -93,6 +95,17 @@ async fn usart_task2(
 //     }
 // }
 
+#[embassy_executor::task]
+async fn usart_task4(mut usart: Uart<'static, Async>) {
+    for n in 0.. {
+        let mut s: String<128> = String::new();
+        core::write!(&mut s, "Hello USART Task4: {}!\r\n", n).unwrap();
+
+        usart.write(s.as_bytes()).await.ok();
+        Timer::after(Duration::from_millis(1000)).await;
+    }
+}
+
 #[embassy_executor::main]
 async fn main(spawner: Spawner) {
     let p = embassy_stm32::init(Default::default());
@@ -100,12 +113,19 @@ async fn main(spawner: Spawner) {
     unwrap!(spawner.spawn(blinky(p.PC13.degrade())));
 
     // valid, but unsafe ?
-    //unwrap!(spawner.spawn(usart_task()));
+    //unwrap!(spawner.spawn(usart_task1()));
 
-    // valid
-    unwrap!(spawner.spawn(usart_task2(p.USART1, p.PA10, p.PA9, p.DMA1_CH0, p.DMA1_CH1)));
+    // safe & valid, but not flexible enough
+    // if we want to change the uart, must update the function
+    //unwrap!(spawner.spawn(usart_task2(p.USART1, p.PA10, p.PA9, p.DMA1_CH0, p.DMA1_CH1)));
 
+    // it's hard to pass the compiler...
     //unwrap!(spawner.spawn(usart_task3(p.USART1, p.PA10, p.PA9, p.DMA1_CH0, p.DMA1_CH1)));
+
+    let config = Config::default();
+    let usart = Uart::new(p.USART1, p.PA10, p.PA9, Irqs, p.DMA1_CH0, p.DMA1_CH1, config).unwrap();
+    // safe & valid, and flexible, can change usart without update the function
+    unwrap!(spawner.spawn(usart_task4(usart)));
 
     loop {
         info!("Hello, World!");

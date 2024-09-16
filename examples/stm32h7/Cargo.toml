@@ -37,6 +37,10 @@ chrono = { version = "^0.4", default-features = false }
 grounded = "0.2.0"
 icm426xx = { version = "0.2.4", features = ["blocking"] }
 embedded-hal-bus = { version = "0.2.0", features = ["async"] }
+st7789 = "0.7.0"
+display-interface-spi = "0.4.1"
+embedded-graphics = "0.7"
+tinybmp = "0.6.0"
 
 # cargo build/run
 [profile.dev]

@@ -35,6 +35,8 @@ embedded-storage = "0.3.1"
 static_cell = "2"
 chrono = { version = "^0.4", default-features = false }
 grounded = "0.2.0"
+icm426xx = { version = "0.2.4", features = ["blocking"] }
+embedded-hal-bus = { version = "0.2.0", features = ["async"] }
 
 # cargo build/run
 [profile.dev]

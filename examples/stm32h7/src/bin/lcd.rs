@@ -13,9 +13,13 @@ use embassy_stm32::time::mhz;
 use embassy_stm32::{spi, Config};
 use embassy_time::{Delay, Timer};
 use embedded_graphics::image::{ImageRawLE, *};
+use embedded_graphics::mono_font::ascii::{FONT_10X20, FONT_6X10};
+use embedded_graphics::mono_font::MonoTextStyle;
 use embedded_graphics::pixelcolor::{Rgb565, Rgb888};
 use embedded_graphics::prelude::*;
 use embedded_graphics::primitives::*;
+use embedded_graphics::text::{Alignment, LineHeight, Text, TextStyleBuilder};
+use heapless::String;
 use st7789::ST7789;
 use static_cell::StaticCell;
 use tinybmp::Bmp;
@@ -52,7 +56,7 @@ async fn main(_spawner: Spawner) {
     spi_config.frequency = mhz(24);
 
     let spi = spi::Spi::new_txonly(p.SPI4, p.PE12, p.PE14, p.DMA1_CH3, spi_config);
-    let mut led = Output::new(p.PC13, Level::High, Speed::Low);
+    //let mut led = Output::new(p.PC13, Level::High, Speed::Low);
     let cs = Output::new(p.PE11, Level::Low, Speed::Low);
     let dc = Output::new(p.PE15, Level::Low, Speed::Low);
     let bl = Output::new(p.PD15, Level::Low, Speed::Low);
@@ -91,12 +95,33 @@ async fn main(_spawner: Spawner) {
     // let zero = Image::new(&zero_bmp, Point::new(60, 60));
     // zero.draw(&mut lcd).unwrap();
 
+    // Create a small and a large character style.
+    let small_style = MonoTextStyle::new(&FONT_6X10, Rgb565::WHITE);
+    let large_style = MonoTextStyle::new(&FONT_10X20, Rgb565::RED);
+    let mut_style = MonoTextStyle::new(&FONT_10X20, Rgb565::YELLOW);
+
+    // Draw the first text at (20, 30) using the small character style.
+    let next = Text::new("Hello ", Point::new(120, 120), small_style)
+        .draw(&mut lcd)
+        .unwrap();
+
+    // Draw the second text after the first text using the large character style.
+    let _next = Text::new("Rust", next, large_style).draw(&mut lcd).unwrap();
+
     let mut scroll = 1u16; // absolute scroll offset
     let mut direction = true; // direction
-    let scroll_delay = 20u8; // delay between steps
+    let scroll_delay = 20u32; // delay between steps
+    let mut counter = 0u32;
+    let rectangle = Rectangle::new(Point::new(0, 180), Size::new(240, 100));
     loop {
         Timer::after_millis(scroll_delay.into()).await;
+        let text: String<32> = String::try_from(counter).unwrap();
+        lcd.fill_solid(&rectangle, Rgb565::BLACK).unwrap();
+        let _ = Text::new(text.as_str(), Point::new(200, 200), mut_style)
+            .draw(&mut lcd)
+            .unwrap();
         lcd.set_scroll_offset(scroll).unwrap();
+        counter += 1;
 
         if scroll % 80 == 0 {
             direction = !direction;

@@ -1,14 +1,18 @@
 #![no_std]
 #![no_main]
 
+use core::fmt::Write;
+
 use defmt::{panic, *};
 use embassy_executor::Spawner;
 use embassy_futures::join::join;
+use embassy_stm32::time::mhz;
 use embassy_stm32::usb::{Driver, Instance};
 use embassy_stm32::{bind_interrupts, peripherals, usb, Config};
 use embassy_usb::class::cdc_acm::{CdcAcmClass, State};
 use embassy_usb::driver::EndpointError;
 use embassy_usb::Builder;
+use heapless::{String, Vec};
 use {defmt_rtt as _, panic_probe as _};
 
 bind_interrupts!(struct Irqs {
@@ -27,16 +31,22 @@ async fn main(_spawner: Spawner) {
     let mut config = Config::default();
     {
         use embassy_stm32::rcc::*;
-        config.rcc.hsi = Some(HSIPrescaler::DIV1);
-        config.rcc.csi = true;
+        config.rcc.hse = Some(Hse {
+            freq: mhz(25),
+            mode: HseMode::Oscillator,
+        });
+        config.rcc.hsi = None;
+        config.rcc.csi = false;
+
         config.rcc.hsi48 = Some(Hsi48Config { sync_from_usb: true }); // needed for USB
         config.rcc.pll1 = Some(Pll {
-            source: PllSource::HSI,
-            prediv: PllPreDiv::DIV4,
-            mul: PllMul::MUL50,
+            source: PllSource::HSE,
+            prediv: PllPreDiv::DIV5,
+            mul: PllMul::MUL160,
             divp: Some(PllDiv::DIV2),
-            divq: None,
-            divr: None,
+            divq: Some(PllDiv::DIV4),
+            //divr: None,
+            divr: Some(PllDiv::DIV2),
         });
         config.rcc.sys = Sysclk::PLL1_P; // 400 Mhz
         config.rcc.ahb_pre = AHBPrescaler::DIV2; // 200 Mhz
@@ -128,10 +138,15 @@ impl From<EndpointError> for Disconnected {
 
 async fn echo<'d, T: Instance + 'd>(class: &mut CdcAcmClass<'d, Driver<'d, T>>) -> Result<(), Disconnected> {
     let mut buf = [0; 64];
+    let mut out_string :String<64> = String::new();
     loop {
-        let n = class.read_packet(&mut buf).await?;
-        let data = &buf[..n];
-        info!("data: {:x}", data);
+        out_string.clear();
+        out_string.write_str("Hello Embassy!\r\n").unwrap();
+        let data = out_string.as_bytes();
+        //let n = class.read_packet(&mut buf).await?;
+        //let data = &buf[..n];
+        //info!("data: {:x}", data);
         class.write_packet(data).await?;
+        embassy_time::Timer::after_millis(1000).await;
     }
 }

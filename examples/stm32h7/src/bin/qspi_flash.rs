@@ -202,7 +202,7 @@ impl<I: Instance> FlashMemory<I> {
             dummy: DummyCycles::_0,
             ..Default::default()
         };
-        self.qspi.command(transaction);
+        self.qspi.blocking_command(transaction);
     }
 
     fn exec_command(&mut self, cmd: u8) {
@@ -216,7 +216,7 @@ impl<I: Instance> FlashMemory<I> {
             ..Default::default()
         };
         // info!("Excuting command: {:x}", transaction.instruction);
-        self.qspi.command(transaction);
+        self.qspi.blocking_command(transaction);
     }
 
     pub fn reset_memory(&mut self) {
@@ -294,7 +294,7 @@ impl<I: Instance> FlashMemory<I> {
             ..Default::default()
         };
         self.enable_write();
-        self.qspi.command(transaction);
+        self.qspi.blocking_command(transaction);
         self.wait_write_finish();
     }
 

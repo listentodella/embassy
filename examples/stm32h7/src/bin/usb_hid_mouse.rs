@@ -1,18 +1,17 @@
 #![no_std]
 #![no_main]
 
-use core::fmt::Write;
-
-use defmt::{panic, *};
+use defmt::*;
 use embassy_executor::Spawner;
 use embassy_futures::join::join;
 use embassy_stm32::time::mhz;
-use embassy_stm32::usb::{Driver, Instance};
+use embassy_stm32::usb::Driver;
 use embassy_stm32::{bind_interrupts, peripherals, usb, Config};
-use embassy_usb::class::cdc_acm::{CdcAcmClass, State};
-use embassy_usb::driver::EndpointError;
+use embassy_time::Timer;
+use embassy_usb::class::hid::{HidWriter, ReportId, RequestHandler, State};
+use embassy_usb::control::OutResponse;
 use embassy_usb::Builder;
-use heapless::{String, Vec};
+use usbd_hid::descriptor::{MouseReport, SerializedDescriptor};
 use {defmt_rtt as _, panic_probe as _};
 
 bind_interrupts!(struct Irqs {
@@ -26,8 +25,6 @@ bind_interrupts!(struct Irqs {
 // for more information.
 #[embassy_executor::main]
 async fn main(_spawner: Spawner) {
-    info!("Hello World!");
-
     let mut config = Config::default();
     {
         use embassy_stm32::rcc::*;
@@ -74,7 +71,7 @@ async fn main(_spawner: Spawner) {
     // Create embassy-usb Config
     let mut config = embassy_usb::Config::new(0xc0de, 0xcafe);
     config.manufacturer = Some("Embassy");
-    config.product = Some("USB-serial example");
+    config.product = Some("HID mouse example");
     config.serial_number = Some("12345678");
 
     // Required for windows compatibility.
@@ -90,6 +87,8 @@ async fn main(_spawner: Spawner) {
     let mut bos_descriptor = [0; 256];
     let mut control_buf = [0; 64];
 
+    let mut request_handler = MyRequestHandler {};
+
     let mut state = State::new();
 
     let mut builder = Builder::new(
@@ -102,7 +101,14 @@ async fn main(_spawner: Spawner) {
     );
 
     // Create classes on the builder.
-    let mut class = CdcAcmClass::new(&mut builder, &mut state, 64);
+    let config = embassy_usb::class::hid::Config {
+        report_descriptor: MouseReport::desc(),
+        request_handler: Some(&mut request_handler),
+        poll_ms: 60,
+        max_packet_size: 8,
+    };
+
+    let mut writer = HidWriter::<_, 5>::new(&mut builder, &mut state, config);
 
     // Build the builder.
     let mut usb = builder.build();
@@ -111,42 +117,55 @@ async fn main(_spawner: Spawner) {
     let usb_fut = usb.run();
 
     // Do stuff with the class!
-    let echo_fut = async {
+    let hid_fut = async {
+        let mut y: i8 = 100;
         loop {
-            class.wait_connection().await;
-            info!("Connected");
-            let _ = echo(&mut class).await;
-            info!("Disconnected");
+            Timer::after_millis(100).await;
+
+            y = -y;
+            let report = MouseReport {
+                buttons: 0,
+                x: 0,
+                y,
+                wheel: 0,
+                pan: 0,
+            };
+            match writer.write_serialize(&report).await {
+                Ok(()) => {}
+                Err(e) => warn!("Failed to send report: {:?}", e),
+            }
         }
     };
 
     // Run everything concurrently.
     // If we had made everything `'static` above instead, we could do this using separate tasks instead.
-    join(usb_fut, echo_fut).await;
+    join(usb_fut, hid_fut).await;
 }
 
-struct Disconnected {}
+struct MyRequestHandler {}
 
-impl From<EndpointError> for Disconnected {
-    fn from(val: EndpointError) -> Self {
-        match val {
-            EndpointError::BufferOverflow => panic!("Buffer overflow"),
-            EndpointError::Disabled => Disconnected {},
-        }
+impl RequestHandler for MyRequestHandler {
+    fn get_report(&mut self, id: ReportId, _buf: &mut [u8]) -> Option<usize> {
+        info!("Get report for {:?}", id);
+        None
+    }
+
+    fn set_report(&mut self, id: ReportId, data: &[u8]) -> OutResponse {
+        info!("Set report for {:?}: {=[u8]}", id, data);
+        OutResponse::Accepted
+    }
+
+    fn set_idle_ms(&mut self, id: Option<ReportId>, dur: u32) {
+        info!("Set idle rate for {:?} to {:?}", id, dur);
+    }
+
+    fn get_idle_ms(&mut self, id: Option<ReportId>) -> Option<u32> {
+        info!("Get idle rate for {:?}", id);
+        None
     }
 }
 
-async fn echo<'d, T: Instance + 'd>(class: &mut CdcAcmClass<'d, Driver<'d, T>>) -> Result<(), Disconnected> {
-    let mut buf = [0; 64];
-    let mut out_string :String<64> = String::new();
-    loop {
-        out_string.clear();
-        out_string.write_str("Hello Embassy!\r\n").unwrap();
-        let data = out_string.as_bytes();
-        //let n = class.read_packet(&mut buf).await?;
-        //let data = &buf[..n];
-        //info!("data: {:x}", data);
-        class.write_packet(data).await?;
-        embassy_time::Timer::after_millis(1000).await;
-    }
+struct GeneralReport {
+    id: u8,
+    buffer: [u8; 63],
 }

@@ -94,14 +94,18 @@ async fn main(_spawner: Spawner) {
     flash.read_memory(0, &mut rd_buf, true);
     info!("WRITE BUF: {=[u8]:#X}", wr_buf);
     info!("READ BUF: {=[u8]:#X}", rd_buf);
-    // flash.enable_mm().await;
-    // info!("Enabled memory mapped mode");
+    flash.enable_mm().await;
+    info!("Enabled memory mapped mode");
 
-    // let first_u32 = unsafe { *(0x90000000 as *const u32) };
-    // assert_eq!(first_u32, 0x03020100);
+    let first_u32 = unsafe { *(0x90000000 as *const u32) };
+    assert_eq!(first_u32, 0x03020100);
 
-    // let second_u32 = unsafe { *(0x90000004 as *const u32) };
-    // assert_eq!(second_u32, 0x07060504);
+    let second_u32 = unsafe { *(0x90000004 as *const u32) };
+    assert_eq!(second_u32, 0x07060504);
+
+    let buf = unsafe { core::slice::from_raw_parts(0x90000000 as *const u8, 8) };
+    info!("BUF: {=[u8]:#X}", buf);
+
     // flash.disable_mm().await;
 
     info!("DONE");
@@ -158,26 +162,18 @@ impl<I: Instance> FlashMemory<I> {
     //     self.qspi.disable_memory_mapped_mode();
     // }
 
-    // pub async fn enable_mm(&mut self) {
-    //     let read_config = TransferConfig {
-    //         iwidth: QspiWidth::QUAD,
-    //         awidth: QspiWidth::QUAD,
-    //         dwidth: QspiWidth::QUAD,
-    //         instruction: 0x0B, // Fast read in QPI mode
-    //         dummy: DummyCycles::_8,
-    //         ..Default::default()
-    //     };
+    pub async fn enable_mm(&mut self) {
+        let transaction: TransferConfig = TransferConfig {
+            iwidth: QspiWidth::SING,
+            awidth: QspiWidth::SING,
+            dwidth: QspiWidth::QUAD,
+            instruction: CMD_QUAD_READ,
+            address: Some(0),
+            dummy: DummyCycles::_8,
+        };
 
-    //     let write_config = TransferConfig {
-    //         iwidth: QspiWidth::SING,
-    //         awidth: QspiWidth::SING,
-    //         dwidth: QspiWidth::QUAD,
-    //         instruction: 0x32, // Write config
-    //         dummy: DummyCycles::_0,
-    //         ..Default::default()
-    //     };
-    //     self.qspi.enable_memory_map(read_config);
-    // }
+        self.qspi.enable_memory_map(&transaction);
+    }
 
     fn enable_quad(&mut self) {
         let cr = self.read_cr();

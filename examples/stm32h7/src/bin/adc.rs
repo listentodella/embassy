@@ -49,12 +49,17 @@ async fn main(_spawner: Spawner) {
     adc.set_sample_time(SampleTime::CYCLES32_5);
 
     let mut vrefint_channel = adc.enable_vrefint();
+    let mut temperature_channel = adc.enable_temperature();
+    let mut vbat_channel = adc.enable_vbat();
 
     loop {
         let vrefint = adc.blocking_read(&mut vrefint_channel);
-        info!("vrefint: {}", vrefint);
+        let temperature = adc.blocking_read(&mut temperature_channel);
+        let vbat = adc.blocking_read(&mut vbat_channel);
+        info!("vrefint:{}, temp:{}, vbat:{}", vrefint, temperature, vbat);
+
         let measured = adc.blocking_read(&mut p.PC0);
         info!("measured: {}", measured);
-        Timer::after_millis(500).await;
+        Timer::after_millis(1000).await;
     }
 }

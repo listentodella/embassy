@@ -42,6 +42,7 @@ display-interface-spi = "0.4.1"
 embedded-graphics = "0.7"
 tinybmp = "0.6.0"
 usbd-hid = "0.8.2"
+embedded-alloc = "0.6.0"
 
 # cargo build/run
 [profile.dev]

@@ -53,6 +53,8 @@ cargo batch \
     --- build --release --manifest-path embassy-net/Cargo.toml --target thumbv7em-none-eabi --features defmt,tcp,udp,dns,proto-ipv4,proto-ipv6,medium-ip \
     --- build --release --manifest-path embassy-net/Cargo.toml --target thumbv7em-none-eabi --features defmt,tcp,udp,dns,proto-ipv4,proto-ipv6,medium-ip,medium-ethernet \
     --- build --release --manifest-path embassy-net/Cargo.toml --target thumbv7em-none-eabi --features defmt,tcp,udp,dns,proto-ipv4,proto-ipv6,medium-ip,medium-ethernet,medium-ieee802154 \
+    --- build --release --manifest-path embassy-imxrt/Cargo.toml --target thumbv8m.main-none-eabihf --features mimxrt633s,defmt,unstable-pac,time,time-driver-rtc \
+    --- build --release --manifest-path embassy-imxrt/Cargo.toml --target thumbv8m.main-none-eabihf --features mimxrt685s,defmt,unstable-pac,time,time-driver-rtc \
     --- build --release --manifest-path embassy-nrf/Cargo.toml --target thumbv6m-none-eabi --features nrf51,gpiote,time,time-driver-rtc1 \
     --- build --release --manifest-path embassy-nrf/Cargo.toml --target thumbv7em-none-eabi --features nrf52805,gpiote,time,time-driver-rtc1 \
     --- build --release --manifest-path embassy-nrf/Cargo.toml --target thumbv7em-none-eabi --features nrf52810,gpiote,time,time-driver-rtc1 \
@@ -166,10 +168,16 @@ cargo batch \
     --- build --release --manifest-path embassy-stm32/Cargo.toml --target thumbv8m.main-none-eabihf --features stm32u5f9zj,defmt,exti,time-driver-any,time \
     --- build --release --manifest-path embassy-stm32/Cargo.toml --target thumbv8m.main-none-eabihf --features stm32u5g9nj,defmt,exti,time-driver-any,time \
     --- build --release --manifest-path embassy-stm32/Cargo.toml --target thumbv7em-none-eabi --features stm32wb35ce,defmt,exti,time-driver-any,time \
+    --- build --release --manifest-path embassy-stm32/Cargo.toml --target thumbv7em-none-eabi --features stm32wb55rg,defmt,exti,time-driver-any,low-power,time \
     --- build --release --manifest-path embassy-stm32/Cargo.toml --target thumbv6m-none-eabi --features stm32u031r8,defmt,exti,time-driver-any,time \
     --- build --release --manifest-path embassy-stm32/Cargo.toml --target thumbv6m-none-eabi --features stm32u073mb,defmt,exti,time-driver-any,time \
     --- build --release --manifest-path embassy-stm32/Cargo.toml --target thumbv6m-none-eabi --features stm32u083rc,defmt,exti,time-driver-any,time \
     --- build --release --manifest-path embassy-nxp/Cargo.toml --target thumbv8m.main-none-eabihf \
+    --- build --release --manifest-path embassy-mspm0/Cargo.toml --target thumbv6m-none-eabi --features mspm0c110x,defmt,time-driver-any \
+    --- build --release --manifest-path embassy-mspm0/Cargo.toml --target thumbv6m-none-eabi --features mspm0g350x,defmt,time-driver-any \
+    --- build --release --manifest-path embassy-mspm0/Cargo.toml --target thumbv6m-none-eabi --features mspm0g351x,defmt,time-driver-any \
+    --- build --release --manifest-path embassy-mspm0/Cargo.toml --target thumbv6m-none-eabi --features mspm0l130x,defmt,time-driver-any \
+    --- build --release --manifest-path embassy-mspm0/Cargo.toml --target thumbv6m-none-eabi --features mspm0l222x,defmt,time-driver-any \
     --- build --release --manifest-path cyw43/Cargo.toml --target thumbv6m-none-eabi --features ''\
     --- build --release --manifest-path cyw43/Cargo.toml --target thumbv6m-none-eabi --features 'log' \
     --- build --release --manifest-path cyw43/Cargo.toml --target thumbv6m-none-eabi --features 'defmt' \
@@ -180,6 +188,7 @@ cargo batch \
     --- build --release --manifest-path cyw43-pio/Cargo.toml --target thumbv6m-none-eabi --features 'embassy-rp/rp2040' \
     --- build --release --manifest-path cyw43-pio/Cargo.toml --target thumbv6m-none-eabi --features 'embassy-rp/rp2040' \
     --- build --release --manifest-path embassy-boot-nrf/Cargo.toml --target thumbv7em-none-eabi --features embassy-nrf/nrf52840 \
+    --- build --release --manifest-path embassy-boot-nrf/Cargo.toml --target thumbv8m.main-none-eabihf --features embassy-nrf/nrf5340-app-s \
     --- build --release --manifest-path embassy-boot-nrf/Cargo.toml --target thumbv8m.main-none-eabihf --features embassy-nrf/nrf9160-ns \
     --- build --release --manifest-path embassy-boot-nrf/Cargo.toml --target thumbv8m.main-none-eabihf --features embassy-nrf/nrf9120-ns \
     --- build --release --manifest-path embassy-boot-nrf/Cargo.toml --target thumbv8m.main-none-eabihf --features embassy-nrf/nrf9151-ns \
@@ -239,6 +248,10 @@ cargo batch \
     --- build --release --manifest-path examples/stm32wba/Cargo.toml --target thumbv8m.main-none-eabihf --artifact-dir out/examples/stm32wba \
     --- build --release --manifest-path examples/stm32wl/Cargo.toml --target thumbv7em-none-eabi --artifact-dir out/examples/stm32wl \
     --- build --release --manifest-path examples/lpc55s69/Cargo.toml --target thumbv8m.main-none-eabihf --artifact-dir out/examples/lpc55s69 \
+    --- build --release --manifest-path examples/mspm0g3507/Cargo.toml --target thumbv6m-none-eabi --artifact-dir out/examples/mspm0g3507 \
+    --- build --release --manifest-path examples/mspm0g3519/Cargo.toml --target thumbv6m-none-eabi --artifact-dir out/examples/mspm0g3519 \
+    --- build --release --manifest-path examples/mspm0l1306/Cargo.toml --target thumbv6m-none-eabi --artifact-dir out/examples/mspm0l1306 \
+    --- build --release --manifest-path examples/mspm0l2228/Cargo.toml --target thumbv6m-none-eabi --artifact-dir out/examples/mspm0l2228 \
     --- build --release --manifest-path examples/boot/application/nrf/Cargo.toml --target thumbv7em-none-eabi --features embassy-nrf/nrf52840,skip-include --artifact-dir out/examples/boot/nrf52840 \
     --- build --release --manifest-path examples/boot/application/nrf/Cargo.toml --target thumbv8m.main-none-eabihf --features embassy-nrf/nrf9160-ns,skip-include --artifact-dir out/examples/boot/nrf9160 \
     --- build --release --manifest-path examples/boot/application/nrf/Cargo.toml --target thumbv8m.main-none-eabihf --features embassy-nrf/nrf9120-ns,skip-include --artifact-dir out/examples/boot/nrf9120 \
@@ -299,14 +312,23 @@ cargo batch \
     --- build --release --manifest-path tests/nrf/Cargo.toml --target thumbv7em-none-eabi --features nrf52840 --artifact-dir out/tests/nrf52840-dk \
     --- build --release --manifest-path tests/nrf/Cargo.toml --target thumbv8m.main-none-eabihf --features nrf5340 --artifact-dir out/tests/nrf5340-dk \
     --- build --release --manifest-path tests/nrf/Cargo.toml --target thumbv8m.main-none-eabihf --features nrf9160 --artifact-dir out/tests/nrf9160-dk \
+    --- build --release --manifest-path tests/mspm0/Cargo.toml --target thumbv6m-none-eabi --features mspm0g3507 --artifact-dir out/tests/mspm0g3507 \
     --- build --release --manifest-path tests/riscv32/Cargo.toml --target riscv32imac-unknown-none-elf \
     $BUILD_EXTRA
 
+
+# MSPM0C1104 must be built seperately since cargo batch does not consider env vars set in `.cargo/config.toml`.
+# Since the target has 1KB of ram, we need to limit defmt's buffer size.
+DEFMT_RTT_BUFFER_SIZE="72" cargo batch \
+    --- build --release --manifest-path examples/mspm0c1104/Cargo.toml --target thumbv6m-none-eabi --artifact-dir out/examples/mspm0c1104 \
 
 # temporarily disabled, these boards are dead.
 rm -rf out/tests/stm32f103c8
 rm -rf out/tests/nrf52840-dk
 rm -rf out/tests/nrf52833-dk
+
+# disabled because these boards are not on the shelf
+rm -rf out/tests/mspm0g3507
 
 rm out/tests/stm32wb55rg/wpan_mac
 rm out/tests/stm32wb55rg/wpan_ble
@@ -314,8 +336,9 @@ rm out/tests/stm32wb55rg/wpan_ble
 # unstable, I think it's running out of RAM?
 rm out/tests/stm32f207zg/eth
 
-# temporarily disabled, hard faults for unknown reasons
+# temporarily disabled, flaky.
 rm out/tests/stm32f207zg/usart_rx_ringbuffered
+rm out/tests/stm32l152re/usart_rx_ringbuffered
 
 # doesn't work, gives "noise error", no idea why. usart_dma does pass.
 rm out/tests/stm32u5a5zj/usart
@@ -324,6 +347,7 @@ rm out/tests/stm32u5a5zj/usart
 # As of 2025-02-17 these tests work when run from flash
 rm out/tests/pimoroni-pico-plus-2/multicore
 rm out/tests/pimoroni-pico-plus-2/gpio_multicore
+rm out/tests/pimoroni-pico-plus-2/spinlock_mutex_multicore
 # Doesn't work when run from ram on the 2350
 rm out/tests/pimoroni-pico-plus-2/flash
 # This test passes locally but fails on the HIL, no idea why

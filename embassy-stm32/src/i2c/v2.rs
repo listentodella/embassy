@@ -617,9 +617,10 @@ impl<'d> I2c<'d, Async> {
                     restart,
                     timeout,
                 )?;
-            } else if remaining_len == 0 {
-                return Poll::Ready(Ok(()));
-            } else if !(isr.tcr() || isr.tc()) {
+                if total_len <= 255 {
+                    return Poll::Ready(Ok(()));
+                }
+            } else if isr.tcr() {
                 // poll_fn was woken without an interrupt present
                 return Poll::Pending;
             } else {
@@ -627,6 +628,11 @@ impl<'d> I2c<'d, Async> {
 
                 if let Err(e) = Self::master_continue(self.info, remaining_len.min(255), !last_piece, timeout) {
                     return Poll::Ready(Err(e));
+                }
+                // Return here if we are on last chunk,
+                // end of transfer will be awaited with the DMA below
+                if last_piece {
+                    return Poll::Ready(Ok(()));
                 }
                 self.info.regs.cr1().modify(|w| w.set_tcie(true));
             }
@@ -855,13 +861,22 @@ impl<'d, M: Mode> SetConfig for I2c<'d, M> {
     type Config = Hertz;
     type ConfigError = ();
     fn set_config(&mut self, config: &Self::Config) -> Result<(), ()> {
+        self.info.regs.cr1().modify(|reg| {
+            reg.set_pe(false);
+        });
+
         let timings = Timings::new(self.kernel_clock, *config);
+
         self.info.regs.timingr().write(|reg| {
             reg.set_presc(timings.prescale);
             reg.set_scll(timings.scll);
             reg.set_sclh(timings.sclh);
             reg.set_sdadel(timings.sdadel);
             reg.set_scldel(timings.scldel);
+        });
+
+        self.info.regs.cr1().modify(|reg| {
+            reg.set_pe(true);
         });
 
         Ok(())

@@ -489,9 +489,39 @@ fn main() {
     }
 
     impl<'a> ClockGen<'a> {
+        fn parse_mul_div(name: &str) -> (&str, Frac) {
+            if name == "hse_div_rtcpre" {
+                return (name, Frac { num: 1, denom: 1 });
+            }
+
+            if let Some(i) = name.find("_div_") {
+                let n = &name[..i];
+                let val: u32 = name[i + 5..].parse().unwrap();
+                (n, Frac { num: 1, denom: val })
+            } else if let Some(i) = name.find("_mul_") {
+                let n = &name[..i];
+                let val: u32 = name[i + 5..].parse().unwrap();
+                (n, Frac { num: val, denom: 1 })
+            } else {
+                (name, Frac { num: 1, denom: 1 })
+            }
+        }
+
         fn gen_clock(&mut self, peripheral: &str, name: &str) -> TokenStream {
-            let clock_name = format_ident!("{}", name.to_ascii_lowercase());
-            self.clock_names.insert(name.to_ascii_lowercase());
+            let name = name.to_ascii_lowercase();
+            let (name, frac) = Self::parse_mul_div(&name);
+            let clock_name = format_ident!("{}", name);
+            self.clock_names.insert(name.to_string());
+
+            let mut muldiv = quote!();
+            if frac.num != 1 {
+                let val = frac.num;
+                muldiv.extend(quote!(* #val));
+            }
+            if frac.denom != 1 {
+                let val = frac.denom;
+                muldiv.extend(quote!(/ #val));
+            }
             quote!(unsafe {
                 unwrap!(
                     crate::rcc::get_freqs().#clock_name.to_hertz(),
@@ -500,6 +530,7 @@ fn main() {
                     #peripheral,
                     #name
                 )
+                #muldiv
             })
         }
 
@@ -616,6 +647,8 @@ fn main() {
                 PeripheralRccKernelClock::Clock(clock) => clock_gen.gen_clock(p.name, clock),
             };
 
+            let bus_clock_frequency = clock_gen.gen_clock(p.name, &rcc.bus_clock);
+
             // A refcount leak can result if the same field is shared by peripherals with different stop modes
             // This condition should be checked in stm32-data
             let stop_mode = match rcc.stop_mode {
@@ -628,6 +661,9 @@ fn main() {
                 impl crate::rcc::SealedRccPeripheral for peripherals::#pname {
                     fn frequency() -> crate::time::Hertz {
                         #clock_frequency
+                    }
+                    fn bus_frequency() -> crate::time::Hertz {
+                        #bus_clock_frequency
                     }
 
                     const RCC_INFO: crate::rcc::RccInfo = unsafe {
@@ -1338,6 +1374,18 @@ fn main() {
                         g.extend(quote! {
                             impl_opamp_vp_pin!( #peri, #pin_name, #ch);
                         })
+                    } else if pin.signal.starts_with("VINM") {
+                        // Impl NonInvertingPin for the VINM* signals ( VINM0, VINM1, etc)
+                        // STM32G4
+                        let peri = format_ident!("{}", p.name);
+                        let pin_name = format_ident!("{}", pin.pin);
+                        let ch: Result<u8, _> = pin.signal.strip_prefix("VINM").unwrap().parse();
+
+                        if let Ok(ch) = ch {
+                            g.extend(quote! {
+                                impl_opamp_vn_pin!( #peri, #pin_name, #ch);
+                            })
+                        }
                     } else if pin.signal == "VOUT" {
                         // Impl OutputPin for the VOUT pin
                         let peri = format_ident!("{}", p.name);
@@ -1489,29 +1537,6 @@ fn main() {
                 e if e.ends_with("pre") || e.ends_with("pres") || e.ends_with("div") || e.ends_with("mul") => true,
                 _ => false,
             }
-        }
-
-        #[derive(Copy, Clone, Debug)]
-        struct Frac {
-            num: u32,
-            denom: u32,
-        }
-
-        impl Frac {
-            fn simplify(self) -> Self {
-                let d = gcd(self.num, self.denom);
-                Self {
-                    num: self.num / d,
-                    denom: self.denom / d,
-                }
-            }
-        }
-
-        fn gcd(a: u32, b: u32) -> u32 {
-            if b == 0 {
-                return a;
-            }
-            gcd(b, a % b)
         }
 
         fn parse_num(n: &str) -> Result<Frac, ()> {
@@ -2123,4 +2148,27 @@ fn mem_filter(chip: &str, region: &str) -> bool {
     }
 
     true
+}
+
+#[derive(Copy, Clone, Debug)]
+struct Frac {
+    num: u32,
+    denom: u32,
+}
+
+impl Frac {
+    fn simplify(self) -> Self {
+        let d = gcd(self.num, self.denom);
+        Self {
+            num: self.num / d,
+            denom: self.denom / d,
+        }
+    }
+}
+
+fn gcd(a: u32, b: u32) -> u32 {
+    if b == 0 {
+        return a;
+    }
+    gcd(b, a % b)
 }
